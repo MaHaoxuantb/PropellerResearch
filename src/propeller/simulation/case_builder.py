@@ -26,7 +26,7 @@ def build_case(geometry, config, directory):
     put("system/controlDict",f'''application simpleFoam;
 startFrom startTime; startTime 0; stopAt endTime; endTime {c['iterations']}; deltaT 1;
 writeControl timeStep; writeInterval {max(50,c['iterations']//5)}; purgeWrite 2;
-writeFormat ascii; writePrecision 10; writeCompression off; timeFormat general; timePrecision 8; runTimeModifiable false;
+writeFormat binary; writePrecision 10; writeCompression off; timeFormat general; timePrecision 8; runTimeModifiable false;
 functions
 {{
  forces {{ type forces; libs (forces); patches (rotor); rho rhoInf; rhoInf {rho}; CofR (0 0 0);
@@ -40,6 +40,13 @@ functions
     vertices=[(-x,-x,z0),(x,-x,z0),(x,x,z0),(-x,x,z0),(-x,-x,z1),(x,-x,z1),(x,x,z1),(-x,x,z1)]
     vertices_text="\n".join("(%g %g %g)"%v for v in vertices)
     cells=" ".join(map(str,c["background_cells"]))
+    # Use the centre of a far-field background cell, not an axis or a grid
+    # plane. Native point location can reject points on coincident cell faces.
+    # The positive-x/y corner is outside the diameter-constrained rotor even
+    # for the smallest supported domain and background resolution.
+    nx,ny,nz=c['background_cells']
+    fluid_seed=(x-x/nx, x-x/ny, z1-(z1-z0)/(2*nz))
+    fluid_seed_text=' '.join(format(value,'.15g') for value in fluid_seed)
     put("system/blockMeshDict",f'''scale 1; vertices ({vertices_text});
 blocks (hex (0 1 2 3 4 5 6 7) ({cells}) simpleGrading (1 1 1)); edges ();
 boundary (farfield {{ type patch; faces ((0 3 2 1) (4 5 6 7) (0 1 5 4) (1 2 6 5) (2 3 7 6) (3 0 4 7)); }});
@@ -55,7 +62,7 @@ mergePatchPairs ();
 );
 ''')
     lo,hi=c["surface_refinement"]
-    quality=f'''maxNonOrtho {c['max_non_orthogonality']}; maxBoundarySkewness 20; maxInternalSkewness {c['max_skewness']}; maxConcave 80;
+    quality=f'''maxNonOrtho {c['max_non_orthogonality']}; maxBoundarySkewness {c['max_skewness']}; maxInternalSkewness {c['max_skewness']}; maxConcave 80;
 minVol 1e-16; minTetQuality 1e-15; minArea -1; minTwist .02; minDeterminant .005;
 minFaceWeight .05; minVolRatio .01; minTriangleTwist -1; nSmoothScale 4; errorReduction .75;'''
     put("system/meshQualityDict",quality)
@@ -74,7 +81,7 @@ castellatedMeshControls
  refinementSurfaces {{ rotor {{ level ({lo} {hi}); patchInfo {{ type wall; }} }} }}
  resolveFeatureAngle 30;
  refinementRegions {{ rotatingRegion {{ mode inside; levels ((1e15 {c['rotor_refinement']})); }} wake {{ mode inside; levels ((1e15 {c['wake_refinement']})); }} }}
- locationInMesh ({.8*x} 0 0); allowFreeStandingZoneFaces true;
+ locationInMesh ({fluid_seed_text}); allowFreeStandingZoneFaces true;
 }}
 snapControls {{ nSmoothPatch 3; tolerance 2; nSolveIter 30; nRelaxIter 5; nFeatureSnapIter 10; implicitFeatureSnap false; explicitFeatureSnap true; multiRegionFeatureSnap false; }}
 addLayersControls

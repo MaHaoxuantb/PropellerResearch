@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "design": {
+    "diameter_max": 0.254,
+    "blade_count": 2,
+    "hub_radius": 0.02032,
+    "hub_length": 0.02032,
+    "root_radius": 0.01778,
+    "shaft_radius": 0.0
+  },
+  "parameters": {
+    "H": 0.0762,
+    "beta": 0.7853981633974483,
+    "shape_exponent": 2.0,
+    "b0": 0.01524,
+    "b1": 0.02032,
+    "b2": 0.01524,
+    "Z": 0.01524,
+    "alpha0": 0.0,
+    "alpha1": -0.2617993877991494
+  },
+  "bounds": {
+    "H": [
+      0.0508,
+      0.0889
+    ],
+    "beta": [
+      0.3141592653589793,
+      1.335176877775662
+    ],
+    "shape_exponent": [
+      2.0,
+      3.0
+    ],
+    "b0": [
+      0.00635,
+      0.03048
+    ],
+    "b1": [
+      0.00635,
+      0.03048
+    ],
+    "b2": [
+      0.00635,
+      0.03048
+    ],
+    "Z": [
+      0.0,
+      0.0508
+    ],
+    "alpha0": [
+      -0.7853981633974483,
+      0.7853981633974483
+    ],
+    "alpha1": [
+      -0.3490658503988659,
+      0.3490658503988659
+    ]
+  },
+  "operating": {
+    "rpm": 5000.0,
+    "rotation_sign": 1,
+    "inflow_speed": 0.0,
+    "density": 1.225,
+    "viscosity": 1.81e-05,
+    "sound_speed": 343.0,
+    "target_thrust": null,
+    "reference_power": null
+  },
+  "geometry": {
+    "span_stations": 81,
+    "chord_points": 25,
+    "thickness_ratio": 0.12,
+    "hub_sections": 96,
+    "minimum_clearance": 0.0005,
+    "section_anchor": "inner_leading_edge",
+    "root_transition_fraction": 0.12,
+    "minimum_root_area": 1e-06,
+    "minimum_body_thickness": 0.0004,
+    "minimum_trailing_edge_thickness": 1e-05,
+    "intersection_tolerance": 1e-09
+  },
+  "cfd": {
+    "backend": "native",
+    "launcher": "/Applications/OpenFOAM-v2512.app/Contents/Resources/etc/openfoam",
+    "version": "v2512",
+    "fidelity": "mesh-sensitivity-1.25",
+    "background_cells": [
+      25,
+      25,
+      40
+    ],
+    "surface_refinement": [
+      5,
+      6
+    ],
+    "wake_refinement": 2,
+    "rotor_refinement": 4,
+    "layers": 3,
+    "max_cells": 1200000,
+    "iterations": 2500,
+    "timeout_seconds": 1800,
+    "force_window": 100,
+    "force_relative_tolerance": 0.02,
+    "residual_tolerance": 0.0001,
+    "continuity_tolerance": 0.0001,
+    "max_non_orthogonality": 70.0,
+    "max_skewness": 4.0,
+    "qualified": false,
+    "mpi_ranks": 1
+  },
+  "optimization": {
+    "seed": 42,
+    "temperature": 0.1,
+    "cooling": 0.98,
+    "proposal_scale": 0.08,
+    "thrust_penalty": 20.0,
+    "max_proposals": 100,
+    "max_evaluations": 50,
+    "max_seconds": 14400
+  }
+}

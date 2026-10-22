@@ -23,7 +23,8 @@ def score(result,config):
     return {"score":F,"feasible":T>=target,"thrust":T,"power":P}
 
 
-def optimize(config,evaluator,checkpoint,resume=False,proposal_limit=None):
+def optimize(config,evaluator,checkpoint,resume=False,proposal_limit=None,initial_result=None):
+    entered=time.monotonic()
     o=config["operating"];settings=config["optimization"]
     if o["target_thrust"] is None or o["reference_power"] is None:
         raise ValueError("Freeze positive target_thrust and reference_power from a converged baseline before optimization")
@@ -35,11 +36,12 @@ def optimize(config,evaluator,checkpoint,resume=False,proposal_limit=None):
         rng.bit_generator.state=state["rng"]
     else:
         if checkpoint.exists(): raise FileExistsError("Checkpoint exists; use resume or a new path")
-        result=evaluator(config);current=score(result,config)
+        result=initial_result if initial_result is not None else evaluator(config);current=score(result,config)
         if current is None: raise ValueError("Initial candidate has no successful finite aerodynamic score")
         state={"fingerprint":fingerprint,"q":normalized(config),"current":current,"best":None,
                "temperature":settings["temperature"],"proposals":0,"evaluations":0 if result.get("cache_hit") else 1,
-               "scored":1,"history":[],"elapsed":0.0}
+               "scored":1,"history":[],"elapsed":time.monotonic()-entered}
+        state['initial_source']={key:result.get(key) for key in ('path','attempt_id','source_kind','baseline_source_sha256')}
         if current["feasible"]: state["best"]={"parameters":config["parameters"],**current}
     start=time.monotonic();initial_proposals=state["proposals"]
     def save():

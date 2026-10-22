@@ -31,12 +31,17 @@ def main(argv=None):
         p=geos.add_parser(action);p.add_argument("--output",default="runs/baseline");p.add_argument("--fast",action="store_true",help="Skip expensive self-intersection scan; never valid for CFD")
     p=geos.add_parser("sample");p.add_argument("--count",type=int,default=200);p.add_argument("--seed",type=int,default=42);p.add_argument("--output",default="runs/geometry-sample.json")
     p=sub.add_parser("case",help="Generate a native OpenCFD case without running it");p.add_argument("--output",required=True)
-    p=sub.add_parser("evaluate");p.add_argument("--output",default="runs/evaluations");p.add_argument("--no-cache",action="store_true")
+    p=sub.add_parser("evaluate");p.add_argument("--output",default="runs/evaluations");p.add_argument("--no-cache",action="store_true");p.add_argument("--initialize-from",help="Map a converged identical rotor/operating point onto a new sensitivity mesh")
+    p=sub.add_parser("continue-evaluation",help="Continue an archived serial solve in a new attempt");p.add_argument("parent");p.add_argument("--output",default="runs/evaluations")
     for name in ("optimize","resume"):
         p=sub.add_parser(name);p.add_argument("--checkpoint",default="runs/optimization/checkpoint.json");p.add_argument("--output",default="runs/evaluations");p.add_argument("--exploratory",action="store_true",help="Explicitly run an unqualified pilot; results are not confirmed improvements")
+        p.add_argument('--baseline-reference',help='Accepted CFD reference written by freeze-baseline');p.add_argument('--fresh-baseline',action='store_true',help='Re-evaluate the initial design instead of using its accepted reference')
     p=sub.add_parser("report");p.add_argument("result");p.add_argument("--output",default="runs/report.html")
     p=sub.add_parser("compare");p.add_argument("results",nargs="+");p.add_argument("--output",default="runs/comparison.json")
-    p=sub.add_parser("freeze-baseline",help="Freeze target thrust and reference power from a successful baseline");p.add_argument("result");p.add_argument("--output",required=True)
+    p=sub.add_parser("assess-baseline",help="Check longer-window settling before baseline promotion");p.add_argument("result");p.add_argument("--window",type=int,default=500);p.add_argument("--output",default="runs/baseline-assessment.json")
+    p=sub.add_parser("study-report",help="Compare matched baseline/mesh/domain evidence");p.add_argument("results",nargs="+");p.add_argument("--window",type=int,default=500);p.add_argument("--relative-limit",type=float,default=.05);p.add_argument("--output",default="runs/reports/baseline-study.html")
+    p=sub.add_parser("surface-audit",help="Compare the native CFD rotor wall with the generated solid");p.add_argument("attempt");p.add_argument("--output",required=True)
+    p=sub.add_parser("freeze-baseline",help="Freeze target thrust and reference power from a successful baseline");p.add_argument("result");p.add_argument("--output",required=True);p.add_argument('--study',help='Require this result to be the selected pilot fidelity in a study JSON');p.add_argument('--calibrate-timeout',action='store_true',help='Increase the full-run timeout from measured iteration cost with a 50% buffer')
     p=sub.add_parser("recover",help="Record orphaned attempts as interrupted without deleting artifacts");p.add_argument("--output",default="runs/evaluations")
     p=sub.add_parser("status",help="Inspect recorded attempts and current solver iteration");p.add_argument("--output",default="runs/evaluations")
     p=sub.add_parser("batch",help="Evaluate independent configurations within explicit resource limits");p.add_argument("configs",nargs="+");p.add_argument("--output",default="runs/evaluations");p.add_argument("--workers",type=int,default=1);p.add_argument("--memory-budget-gb",type=float);p.add_argument("--job-memory-gb",type=float)
@@ -89,28 +94,36 @@ def main(argv=None):
             path=write_preview(g,report,c,out/"preview.html")
             emit({"preview":str(path.resolve()),"geometry":g.measurements,"validation":report.to_dict()});return 0 if report.valid else 2
         if args.command=="evaluate":
-            result=evaluate_cfd(c,args.output,not args.no_cache);emit(result);return 0 if result["status"]=="SUCCESS" else 2
+            result=evaluate_cfd(c,args.output,not args.no_cache,args.initialize_from);emit(result);return 0 if result["status"]=="SUCCESS" else 2
+        if args.command=="continue-evaluation":
+            from .simulation.continuation import continue_evaluation
+            result=continue_evaluation(args.parent,c,args.output);emit(result);return 0 if result["status"]=="SUCCESS" else 2
         if args.command=="compare":
             from .analysis import compare_results
             result=compare_results(args.results);atomic_json(args.output,result);emit(result);return 0
+        if args.command=="assess-baseline":
+            from .analysis import assess_baseline
+            result=assess_baseline(args.result,args.window);atomic_json(args.output,result);emit(result);return 0 if result['status']=='READY_FOR_SENSITIVITY' else 2
+        if args.command=="study-report":
+            from .study import write_study
+            output,result=write_study(args.results,args.output,args.window,args.relative_limit);emit({'report':str(output),'status':result['status'],'qualified':False});return 0 if result['status']=='READY_FOR_EXPLORATORY_SEARCH' else 2
+        if args.command=="surface-audit":
+            from .simulation.surface_audit import surface_audit
+            emit(surface_audit(args.attempt,args.output));return 0
         if args.command=="freeze-baseline":
-            result_path=Path(args.result).resolve();result=json.loads(result_path.read_text())
-            if result.get("status")!="SUCCESS":raise ValueError("Baseline must have SUCCESS convergence status")
-            original=result_path.parent/"manifest.json"
-            if not original.exists():raise ValueError("Baseline manifest is required")
-            source=json.loads(original.read_text())["config"]
-            if c!=source:raise ValueError("Selected configuration does not match the evaluated baseline")
-            T,P=result["metrics"]["thrust"],result["metrics"]["shaft_power"]
-            if T<=0 or P<=0:raise ValueError("Baseline must produce positive thrust and consume positive power")
-            if Path(args.output).exists():raise FileExistsError("Baseline output already exists")
-            c["operating"].update(target_thrust=T,reference_power=P)
-            atomic_json(args.output,c)
-            atomic_json(str(args.output)+".baseline.json",{"source":str(result_path),"target_thrust":T,"reference_power":P,"qualified":False})
-            emit({"configuration":str(Path(args.output).resolve()),"target_thrust":T,"reference_power":P,"qualified":False});return 0
+            from .baseline import freeze_baseline
+            emit(freeze_baseline(c,args.result,args.output,args.study,args.calibrate_timeout));return 0
         if args.command in ("optimize","resume"):
             if not args.exploratory:
                 raise ValueError("CFD qualification has not been established. Use --exploratory only for an explicitly unconfirmed pilot after inspecting baseline convergence.")
-            result=optimize(c,lambda candidate:evaluate_cfd(candidate,args.output),args.checkpoint,resume=args.command=="resume")
+            initial=None
+            if args.command=='optimize' and not args.fresh_baseline:
+                reference=Path(args.baseline_reference or (args.config+'.baseline.json'))
+                if reference.exists():
+                    from .baseline import load_baseline_seed
+                    initial=load_baseline_seed(c,reference)
+                elif args.baseline_reference:raise FileNotFoundError(reference)
+            result=optimize(c,lambda candidate:evaluate_cfd(candidate,args.output),args.checkpoint,resume=args.command=="resume",initial_result=initial)
             emit({"best":result["best"],"proposals":result["proposals"],"evaluations":result["evaluations"],"qualified":False,"checkpoint":args.checkpoint});return 0
         if args.command=="report":
             if Path(args.output).suffix.lower()==".html":

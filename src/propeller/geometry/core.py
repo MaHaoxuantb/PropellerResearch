@@ -61,6 +61,26 @@ def airfoil(points=25, thickness=.12):
     return np.column_stack((np.r_[x[::-1], x[1:]], np.r_[yt[::-1], -yt[1:]]))
 
 
+def oriented_airfoils(u,points,thickness,transition=.015):
+    """Mirror the NACA thickness distribution smoothly on the return leg.
+
+    Equal finite end caps retain vertex correspondence as the round nose and
+    thin trailing region exchange ends. The nose truncation is the standard
+    finite TE half-gap. Only the apex connector morphs between profiles.
+    """
+    x=.5*(1-np.cos(np.linspace(0,np.pi,points)))
+    half=5*thickness*(.2969*np.sqrt(x)-.1260*x-.3516*x*x+.2843*x**3-.1015*x**4)
+    half=np.maximum(half,half[-1])
+    t=np.clip((u-(.5-transition))/(2*transition),0,1)
+    flip=t*t*t*(10+t*(-15+6*t))
+    y=(1-flip[:,None])*half[None,:]+flip[:,None]*half[::-1][None,:]
+    y*=half.max()/y.max(axis=1)[:,None]
+    profiles=np.empty((len(u),2*points,2))
+    profiles[:,:,0]=np.r_[x[::-1],x]
+    profiles[:,:,1]=np.concatenate((y[:,::-1],-y),axis=1)
+    return profiles,flip
+
+
 def sections(config):
     p, g, d = (config[k] for k in ("parameters", "geometry", "design"))
     # Curvature-weighted sampling retains endpoints/apex and resolves turning roots.
@@ -71,7 +91,12 @@ def sections(config):
     turn = np.linalg.norm(np.diff(unit(D0), axis=0), axis=1)
     weight = np.r_[0, np.cumsum(np.linalg.norm(np.diff(C0, axis=0),axis=1)/d["diameter_max"] + .08*turn)]
     weight /= weight[-1]
-    u = np.sort(np.r_[np.interp(np.linspace(0,1,g["span_stations"]), weight, dense), .5])
+    u = np.r_[np.interp(np.linspace(0,1,g["span_stations"]), weight, dense), .5]
+    mapping=g.get('airfoil_mapping','fixed_naca')
+    if mapping=='opposed_naca':
+        band=g.get('airfoil_transition_fraction',.015)
+        u=np.r_[u,np.linspace(.5-band,.5+band,9)]
+    u = np.sort(u)
     u = u[np.r_[True,np.diff(u)>1e-10]]
     u[np.argmin(np.abs(u-.5))]=.5
     C, D, DD = curve(u, p, d["root_radius"])
@@ -84,23 +109,31 @@ def sections(config):
     normal = np.cross(T, direction)
     w = p["b0"]*(1-s)**2 + 2*p["b1"]*s*(1-s)+p["b2"]*s*s
     section = airfoil(g["chord_points"], g["thickness_ratio"])
+    if mapping=='opposed_naca':
+        profiles,flip=oriented_airfoils(u,g['chord_points'],g['thickness_ratio'],g.get('airfoil_transition_fraction',.015))
+        section=profiles[0]
+    else:
+        profiles=np.broadcast_to(section,(len(u),len(section),2));flip=np.zeros(len(u))
     # Retract the root chord into the hub with C2-smooth quintic blending.
     fraction = g["root_transition_fraction"]
     if not 0 < fraction < .25: raise ValueError("root_transition_fraction must lie in (0,.25)")
     t = np.clip(np.minimum(u,1-u)/fraction, 0, 1)
     smooth = t*t*t*(10+t*(-15+6*t))
     shift = .95*(1-smooth)
-    points = C[:,None,:] + w[:,None,None]*((section[None,:,0]-shift[:,None])[:,:,None]*direction[:,None,:]+section[None,:,1,None]*normal[:,None,:])
+    points = C[:,None,:] + w[:,None,None]*((profiles[:,:,0]-shift[:,None])[:,:,None]*direction[:,None,:]+profiles[:,:,1,None]*normal[:,None,:])
     omega = config["operating"]["rotation_sign"]*config["operating"]["rpm"]*2*np.pi/60
     flow = -np.cross(np.array([0,0,omega]), C)
     flow[:,2] -= config["operating"]["inflow_speed"]
     section_flow = flow - np.sum(flow*T,axis=1)[:,None]*T
     speed = np.linalg.norm(section_flow,axis=1)
     chord_flow = np.sum(section_flow*direction,axis=1)
+    geometric_chord_flow=chord_flow.copy()
+    if mapping=='opposed_naca':chord_flow=chord_flow*np.where(flip<.5,1,-1)
     return dict(u=u,s=s,C=C,T=T,e1=e1,e2=e2,d=direction,n=normal,width=w,
                 points=points,curvature=np.linalg.norm(np.cross(D,DD),axis=1)/np.linalg.norm(D,axis=1)**3,
                 section_flow=section_flow,chord_flow=chord_flow,section_speed=speed,
-                root_shift=shift,airfoil=section)
+                root_shift=shift,airfoil=section,airfoil_profiles=profiles,profile_flip_weight=flip,
+                geometric_chord_flow=geometric_chord_flow)
 
 
 def loft(points):
@@ -141,11 +174,15 @@ def generate_rotor(config):
     reverse=float(np.mean(flow[active]<0)) if np.any(active) else 0.
     warnings=[]
     if reverse>.05:
-        warnings.append("Geometric LE convention sees reverse chordwise flow at %.1f%% of active stations; induced flow is omitted."%(100*reverse))
+        warnings.append("Nominated profile LE sees reverse chordwise flow at %.1f%% of active stations; induced flow is omitted."%(100*reverse))
+    if g.get('airfoil_mapping')=='opposed_naca':
+        warnings.append('NACA-derived fore-aft mapping uses finite nose caps and an apex profile morph; aerodynamic improvement is unverified.')
     warnings.append("Root retraction is a geometric transition, not a structural certification or a tangent fillet.")
     measurements={"diameter":diameter,"volume":float(mesh.volume),"surface_area":float(mesh.area),
                   "triangles":len(mesh.faces),"blade_count":d["blade_count"],
                   "maximum_reference_curvature":float(samples["curvature"].max()),
                   "reverse_flow_station_fraction":reverse,"backend":"explicit-section-loft+manifold",
                   "root_transition":"quintic-chord-retraction-v1"}
+    measurements['airfoil_mapping']=g.get('airfoil_mapping','fixed_naca')
+    measurements['geometric_reverse_flow_station_fraction']=float(np.mean(samples['geometric_chord_flow'][active]<0)) if np.any(active) else 0.
     return GeometryResult(mesh,blades,hub,samples,measurements,warnings)

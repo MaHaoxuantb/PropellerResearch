@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 import trimesh
 from propeller.config import load_config,normalized,physical,validate_config
-from propeller.geometry.core import curve,sections,airfoil,generate_rotor
+from propeller.geometry.core import curve,sections,airfoil,generate_rotor,oriented_airfoils
 from propeller.geometry.validation import validate_geometry,self_intersections
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -62,6 +62,26 @@ class GeometryMathTests(unittest.TestCase):
         self.assertAlmostEqual(2*a[:,1].max(),.12,delta=.0001)
         self.assertGreater(a[0,1]-a[-1,1],0)
 
+    def test_opposed_profiles_keep_correspondence_and_thickness(self):
+        u=np.linspace(0,1,201);profiles,flip=oriented_airfoils(u,25,.12)
+        np.testing.assert_allclose(profiles[0,:25,1],profiles[-1,:25,1][::-1],atol=1e-14)
+        np.testing.assert_allclose(np.ptp(profiles[:,:,1],axis=1),np.ptp(profiles[0,:,1]),atol=1e-14)
+        np.testing.assert_allclose(profiles[:,:,0].min(axis=1),0,atol=1e-14)
+        np.testing.assert_allclose(profiles[:,:,0].max(axis=1),1,atol=1e-14)
+        self.assertTrue(np.all(np.linalg.norm(np.roll(profiles,-1,axis=1)-profiles,axis=2)>0))
+        self.assertTrue(np.all(np.diff(flip)>=0))
+        self.assertEqual(flip[0],0);self.assertEqual(flip[-1],1)
+
+    def test_opposed_section_coordinates_follow_the_profile(self):
+        c=load_config(ROOT/'config/flow-oriented.json');s=sections(c)
+        delta=(s['points']-s['C'][:,None,:])/s['width'][:,None,None]
+        x=np.einsum('ijk,ik->ij',delta,s['d'])+s['root_shift'][:,None]
+        y=np.einsum('ijk,ik->ij',delta,s['n'])
+        np.testing.assert_allclose(x,s['airfoil_profiles'][:,:,0],atol=1e-12)
+        np.testing.assert_allclose(y,s['airfoil_profiles'][:,:,1],atol=1e-12)
+        active=(s['u']>.15)&(s['u']<.85)&(s['section_speed']>.1)
+        self.assertTrue(np.all(s['chord_flow'][active]>=0))
+
     def test_crossing_triangles_detected(self):
         vertices=[[-1,-1,0],[1,-1,0],[0,1,0],[0,0,-1],[0,0,1],[.5,.5,0]]
         m=trimesh.Trimesh(vertices=vertices,faces=[[0,1,2],[3,4,5]],process=False)
@@ -88,6 +108,12 @@ class SolidTests(unittest.TestCase):
         self.assertTrue(r.valid,r.violations)
         self.assertEqual(len(self.g.mesh.split()),1)
         self.assertGreater(self.g.mesh.volume,0)
+
+    def test_opposed_profile_forms_one_valid_solid(self):
+        c=load_config(ROOT/'config/flow-oriented.json');g=generate_rotor(c);r=validate_geometry(g,c,deep=False)
+        self.assertTrue(r.valid,r.violations)
+        self.assertEqual(g.measurements['reverse_flow_station_fraction'],0)
+        self.assertEqual(g.measurements['geometric_reverse_flow_station_fraction'],.5)
 
     def test_rotation_and_determinism(self):
         a,b=self.g.blades

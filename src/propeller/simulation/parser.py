@@ -7,6 +7,18 @@ import numpy as np
 NUMBER=r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?"
 
 
+def residual_history(log):
+    records={};iteration=None
+    for line in log.splitlines():
+        match=re.match(r'Time = ('+NUMBER+')',line)
+        if match:iteration=float(match.group(1))
+        match=re.search(r'Solving for (\w+), Initial residual = ('+NUMBER+')',line)
+        if match and iteration is not None:
+            fields=records.setdefault(iteration,{})
+            fields[match.group(1)]=max(fields.get(match.group(1),0),float(match.group(2)))
+    return records
+
+
 def read_vectors(path):
     rows=[]
     for line in Path(path).read_text().splitlines():
@@ -38,10 +50,10 @@ def summarize(case,config,diameter):
         return {"relative_std":float(np.std(values)/scale),"relative_drift":float(abs(values[mid:].mean()-values[:mid].mean())/scale) if mid else float("inf")}
     tstats,pstats=stability(tailT),stability(tailP)
     log=(case/"log.simpleFoam").read_text(errors="replace")
-    residuals={}
-    final_iteration=re.split(r"(?:^|\n)Time = "+NUMBER+r"\s*\n",log)[-1]
-    for name,value in re.findall(r"Solving for (\w+), Initial residual = ("+NUMBER+r")",final_iteration):
-        residuals[name]=max(residuals.get(name,0),float(value))
+    times=set(force[-window:,0]);history=residual_history(log)
+    history={t:fields for t,fields in history.items() if t in times}
+    residuals={field:max(fields[field] for fields in history.values() if field in fields)
+               for field in ('p','Ux','Uy','Uz','k','omega') if any(field in fields for fields in history.values())}
     continuity=re.findall(r"sum local = ("+NUMBER+r")",log)
     continuity=float(continuity[-1]) if continuity else None
     yplus=re.findall(r"patch rotor y\+ : min = ("+NUMBER+r"), max = ("+NUMBER+r"), average = ("+NUMBER+r")",log)
@@ -49,7 +61,7 @@ def summarize(case,config,diameter):
     reasons=[]
     if len(force)<window: reasons.append("Insufficient force samples")
     if not log.rstrip().endswith("End"): reasons.append("Solver did not finish cleanly")
-    if not {"p","Ux","Uy","Uz","k","omega"}.issubset(residuals): reasons.append("Missing residual evidence")
+    if len(history)!=len(times) or any(not {"p","Ux","Uy","Uz","k","omega"}.issubset(fields) for fields in history.values()): reasons.append("Missing residual evidence in averaging window")
     if any(v>c["residual_tolerance"] for v in residuals.values()): reasons.append("Residual threshold exceeded")
     if continuity is None or abs(continuity)>c["continuity_tolerance"]: reasons.append("Continuity threshold missing/exceeded")
     if wall is None:reasons.append("Missing rotor y+ evidence")
@@ -60,7 +72,7 @@ def summarize(case,config,diameter):
              "efficiency":T*o["inflow_speed"]/P if P>0 and o["inflow_speed"]>0 and T>0 else None,
              "figure_of_merit":T**1.5/(P*math.sqrt(2*rho*area)) if T>0 and P>0 and o["inflow_speed"]==0 else None}
     return {"status":"NOT_CONVERGED" if reasons else "SUCCESS","metrics":metrics,"reasons":reasons,
-            "diagnostics":{"samples":len(force),"last_time":float(force[-1,0]),"window":window,"thrust_stability":tstats,"power_stability":pstats,"residuals":residuals,"local_continuity":continuity,"y_plus":wall},
+            "diagnostics":{"samples":len(force),"last_time":float(force[-1,0]),"window":window,"thrust_stability":tstats,"power_stability":pstats,"residuals":residuals,"residual_window_samples":len(history),"local_continuity":continuity,"y_plus":wall},
             "qualified":False,"provenance":"native-openfoam-"+c["version"]}
 
 

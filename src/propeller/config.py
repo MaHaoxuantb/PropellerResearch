@@ -33,7 +33,7 @@ def validate_config(c):
         if missing or unknown:raise ValueError(name+': missing='+str(sorted(missing))+', unknown='+str(sorted(unknown)))
     keys('design',('diameter_max','blade_count','hub_radius','hub_length','root_radius','shaft_radius'))
     keys('operating',('rpm','rotation_sign','inflow_speed','density','viscosity','sound_speed','target_thrust','reference_power'))
-    keys('geometry',('span_stations','chord_points','thickness_ratio','hub_sections','minimum_clearance','section_anchor','root_transition_fraction','minimum_root_area','minimum_body_thickness','minimum_trailing_edge_thickness','intersection_tolerance'))
+    keys('geometry',('span_stations','chord_points','thickness_ratio','hub_sections','minimum_clearance','section_anchor','root_transition_fraction','minimum_root_area','minimum_body_thickness','minimum_trailing_edge_thickness','intersection_tolerance'),('airfoil_mapping','airfoil_transition_fraction'))
     keys('cfd',('backend','launcher','version','fidelity','background_cells','surface_refinement','wake_refinement','rotor_refinement','layers','max_cells','iterations','timeout_seconds','force_window','force_relative_tolerance','residual_tolerance','continuity_tolerance','max_non_orthogonality','max_skewness','qualified'),('mpi_ranks','startup_timeout_seconds','domain'))
     keys('optimization',('seed','temperature','cooling','proposal_scale','thrust_penalty','max_proposals','max_evaluations','max_seconds'))
     for key in ("diameter_max", "hub_radius", "hub_length", "root_radius"):
@@ -69,6 +69,8 @@ def validate_config(c):
     if not isinstance(f.get("mpi_ranks",1),int) or not 1<=f.get("mpi_ranks",1)<=64:raise ValueError("mpi_ranks must be an integer in [1,64]")
     if f["force_window"]<4 or f["iterations"]<f["force_window"]:
         raise ValueError("iterations must cover force_window >= 4")
+    if not all(isinstance(f[key],int) and not isinstance(f[key],bool) for key in ('iterations','force_window')):
+        raise ValueError('iterations and force_window must be integers')
     if len(f["background_cells"])!=3 or any(not isinstance(n,int) or n<4 for n in f["background_cells"]):
         raise ValueError("background_cells requires three integers >=4")
     if len(f["surface_refinement"])!=2 or not 0<=f["surface_refinement"][0]<=f["surface_refinement"][1]<=10:
@@ -82,7 +84,9 @@ def validate_config(c):
         if f[key]<=0:raise ValueError(key+" must be positive")
     for key in ("temperature","proposal_scale","thrust_penalty","max_proposals","max_evaluations","max_seconds"):
         if opt[key]<=0:raise ValueError(key+" must be positive")
-    if g["section_anchor"]!="inner_leading_edge":raise ValueError("Unsupported section anchoring convention")
+    if g["section_anchor"] not in ('inner_leading_edge','inner_edge'):raise ValueError("Unsupported section anchoring convention")
+    if g.get('airfoil_mapping','fixed_naca') not in ('fixed_naca','opposed_naca'):raise ValueError('Unsupported airfoil mapping')
+    if not 0<g.get('airfoil_transition_fraction',.015)<.1:raise ValueError('Airfoil transition half-width must lie in (0,.1)')
     if not 0<g["root_transition_fraction"]<.25:raise ValueError("Invalid root transition fraction")
     if any(g[k]<0 for k in ("minimum_clearance","minimum_root_area","minimum_body_thickness","minimum_trailing_edge_thickness")):
         raise ValueError("Feature constraints cannot be negative")

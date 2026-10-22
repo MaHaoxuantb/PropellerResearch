@@ -2,7 +2,7 @@
 import hashlib
 from pathlib import Path
 import time
-from ..experiments import Store,evaluation_key,atomic_json
+from ..experiments import Store,evaluation_key,atomic_json,canonical
 from ..geometry import generate_rotor,validate_geometry
 from ..geometry.preview import write_preview
 from .case_builder import build_case
@@ -10,7 +10,7 @@ from .runner import runtime_info,run_command
 from .parser import summarize,mesh_diagnostics
 
 
-def evaluate_cfd(config,root="runs/evaluations",use_cache=True):
+def evaluate_cfd(config,root="runs/evaluations",use_cache=True,initialize_from=None):
     store=Store(root); key,manifest=evaluation_key(config)
     # Verify actual runtime before retrieving a stored calculation.
     runtime=runtime_info(config);manifest["runtime"]=runtime
@@ -18,6 +18,14 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True):
         store.close()
         return {"status":"RUNTIME_UNAVAILABLE","reasons":[runtime],"qualified":False}
     key=hashlib.sha256((key+str(runtime)).encode()).hexdigest()
+    initialization=None
+    if initialize_from:
+        from .initialization import initialization_inputs
+        try:initialization=initialization_inputs(initialize_from,config,runtime)
+        except Exception:
+            store.close();raise
+        manifest['initialization']=initialization
+        key=hashlib.sha256((key+canonical(initialization)).encode()).hexdigest()
     if use_cache:
         cached=store.cached(key)
         if cached: store.close();return dict(cached,cache_hit=True)
@@ -29,6 +37,10 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True):
     try:
         try: geometry=generate_rotor(config)
         except Exception as exc: return finish({"status":"GEOMETRY_INVALID","reasons":[str(exc)]})
+        if initialization:
+            from .initialization import check_geometry
+            initialization['geometry_equivalence']=check_geometry(geometry,initialization)
+            atomic_json(directory/'initialization.json',initialization)
         validation=validate_geometry(geometry,config,deep=True)
         atomic_json(directory/"validation.json",validation.to_dict())
         write_preview(geometry,validation,config,directory/"preview.html")
@@ -36,6 +48,10 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True):
         try: case=build_case(geometry,config,directory/"case")
         except Exception as exc: return finish({"status":"EXPORT_FAILED","reasons":[str(exc)]})
         pipeline=[["blockMesh"],["surfaceFeatureExtract"],["snappyHexMesh","-overwrite"],["checkMesh","-allTopology","-meshQuality"],["topoSet"]]
+        if initialization:
+            from .initialization import mapping_command
+            pipeline.append(mapping_command(case,initialization))
+            atomic_json(directory/'initialization.json',initialization)
         ranks=config["cfd"].get("mpi_ranks",1)
         if ranks>1:pipeline.extend([["decomposePar"],["mpirun","-np",str(ranks),"simpleFoam","-parallel"]])
         else:pipeline.append(["simpleFoam"])
@@ -43,11 +59,15 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True):
             attempt=run_command(config,case,command);commands.append(attempt)
             atomic_json(directory/"commands.json",commands)
             if attempt["status"]!="SUCCESS":
-                return finish({"status":"TIMEOUT" if attempt["status"]=="TIMEOUT" else ("SOLVER_FAILED" if command[0] in ("simpleFoam","mpirun") else "MESH_FAILED"),"reasons":[attempt]})
+                return finish({"status":"TIMEOUT" if attempt["status"]=="TIMEOUT" else ("SOLVER_FAILED" if command[0] in ("simpleFoam","mpirun") else "INITIALIZATION_FAILED" if command[0]=="mapFields" else "MESH_FAILED"),"reasons":[attempt]})
             if command[0]=="checkMesh":
                 mesh_info=mesh_diagnostics(case,config)
                 atomic_json(directory/"mesh.json",mesh_info)
                 if not mesh_info["valid"]:return finish({"status":"MESH_FAILED","reasons":mesh_info["errors"]})
+            if command[0]=="mapFields":
+                log=Path(attempt['log']).read_text(errors='replace')
+                if not all('interpolating '+field in log for field in ('U','p','k','omega','nut')) or not log.rstrip().endswith('End'):
+                    return finish({'status':'INITIALIZATION_FAILED','reasons':['Incomplete field-mapping evidence']})
         try:result=summarize(case,config,geometry.measurements["diameter"])
         except ValueError as exc:result={"status":"NOT_CONVERGED","reasons":["Unusable force/convergence evidence: "+str(exc)],"qualified":False}
         result["geometry"]=geometry.measurements
@@ -55,6 +75,7 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True):
         result["geometry_sha256"]=hashlib.sha256((case/"constant/triSurface/rotor.stl").read_bytes()).hexdigest()
         # Numerical convergence does not imply experimental or mesh qualification.
         result["qualified"]=False
+        if initialization:result['initialization']=initialization
         return finish(result)
     except KeyboardInterrupt:
         finish({"status":"INTERRUPTED","reasons":["User interruption"]});raise
