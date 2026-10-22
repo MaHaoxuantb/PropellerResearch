@@ -1,18 +1,9 @@
-import os
+"""Run from a checkout without installing the package."""
 from pathlib import Path
-from foamlib import FoamCase
+import sys
 
-# Clone and run a case
-my_case = FoamCase(Path("trials")).clone("myCase")
-my_case.run()
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+from propeller.cli import main
 
-# Access results
-latest_time = my_case[-1]
-pressure = latest_time["p"].internal_field
-velocity = latest_time["U"].internal_field
-
-print(f"Max pressure: {max(pressure)}")
-print(f"Velocity at first cell: {velocity[0]}")
-
-# Clean up
-my_case.clean()
+if __name__ == "__main__":
+    sys.exit(main())
