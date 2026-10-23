@@ -116,7 +116,7 @@ HTML reports include thrust, signed shaft power and residual plots, with PNG/SVG
 
 ## Current verification result
 
-All 37 tests pass. The legacy antisymmetric baseline continuation reached `SUCCESS` at 3,000 iterations and passed a separate 500-iteration settling check. The newer flow-oriented profile remains under evaluation: its coarse seed-placement failure has been repaired and a fresh evaluation launched; its refined solution is being continued from 2,500 to 4,500 iterations with unchanged acceptance thresholds. See the [CFD repair plan](docs/CFD_FIX_PLAN.md) for the active record paths and qualification sequence. No optimized or physically qualified design is claimed. Reports are in `runs/reports/`.
+All 48 tests pass in the separate optimization environment, including a real Bayesian acquisition smoke test. The flow-oriented refined baseline completed 4,500 iterations and passes sustained convergence checks (approximately 0.6832 N, 9.3615 W). Its completed orphaned result has been recovered with an explicit audit. The repaired coarse mesh passes, but its 2,500-iteration flow result remains unconverged. The fixed-radius Bayesian pilot is implemented; see the commands below and [pilot notes](docs/research/PILOT_IMPLEMENTATION.md). No optimized or physically qualified design is claimed.
 
 ## Verify the code
 
@@ -127,3 +127,47 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 Tests cover analytic derivatives, section mapping, frame orientation, constraints, triangle crossings, connected solids, deterministic exports, cache identity, failure handling, torque signs and deterministic optimization resume. Synthetic optimizer tests are labelled and never written to the CFD results archive.
 
 See [the source specification](docs/SPECIFICATION.md), [implementation plan](IMPLEMENTATION_PLAN.md), and [implementation notes](docs/IMPLEMENTATION_NOTES.md). The original `Model.py` remains as a historical prototype.
+
+## Fixed-radius Bayesian pilot
+
+The Pareto pilot optimizes thrust and thrust per watt at one actual radius. Eight
+independent shape coordinates are proposed; `H` is solved to preserve radius.
+It uses a cheap section screen, then the full solid validator, before native
+meshing and CFD. Geometry screens do not certify strength or predict performance.
+
+The separate Python 3.12 environment `.venv-bo` is pinned in
+`requirements-bo.lock`. Launch and inspect the pilot with:
+
+```sh
+PYTHONPATH=src .venv-bo/bin/python -m propeller.optimization.campaign start runs/mobo-pilot-new --settings config/mobo-pilot.json
+PYTHONPATH=src .venv-bo/bin/python -m propeller.optimization.campaign status runs/mobo-pilot-02
+PYTHONPATH=src .venv-bo/bin/python -m propeller.optimization.campaign stop runs/mobo-pilot-02
+```
+
+The launch creates a detached supervisor, persistent state, worker logs and a
+refreshing `report.html`. Do not reuse a nonempty directory for `start`. After an
+interruption, `run runs/mobo-pilot` resumes the saved campaign only if its source
+and configuration match and previous workers have exited. Its original absolute
+deadline is retained. Native subprocesses enforce both candidate deadlines and
+supervisor liveness. The `STOP` file requests termination of owned workers.
+
+The initial pilot allows **12 new evaluations, at most 12 hours**, and no more
+than 36 attempts including rejected geometry. After six completed CFD attempts
+and at least four accepted observations (including the baseline), it switches
+from space-filling proposals to actual BoTorch qLogNEHVI proposals. Failed solves
+never become fabricated performance observations. Each job records which proposal
+method selected it. Two proposal failures stop the search for inspection.
+
+It starts with two workers and permits up to four after two new accepted results,
+subject to a conservative estimate from observed memory use. This is resource
+planning, not an OS memory quota. It stops earlier after four consecutive numerical
+failures, or four accepted results without a >0.5% frontier-area improvement after
+at least eight accepted observations. Space, time and evaluation caps also stop
+new work. Active jobs drain for ordinary early stops; explicit stop/deadline
+requests terminate them. Early stopping is a budget decision, not proof of a
+mathematical optimum. Mesh/domain and experimental qualification remain pending.
+
+Completed orphaned evaluations can now be recovered from full native evidence.
+Recovery records log hashes and an unknown original process exit code rather than
+inventing one. Live native children prevent recovery even if the Python owner has
+exited. Existing published results remain unchanged.

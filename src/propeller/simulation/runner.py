@@ -7,6 +7,15 @@ import subprocess
 import time
 import resource
 import sys
+from ..experiments import atomic_json
+
+
+def process_alive(pid):
+    if not isinstance(pid,int) or pid<=0: return False
+    try: os.kill(pid,0)
+    except ProcessLookupError: return False
+    except PermissionError: return True
+    return True
 
 
 def runtime_info(config):
@@ -35,13 +44,18 @@ def run_command(config,case,command):
     logfile=Path(case)/("log."+label)
     args=[config["cfd"]["launcher"]]+list(command)+["-case",str(Path(case).resolve())]
     started=time.monotonic()
+    absolute_deadline=float(os.environ.get('PROPELLER_DEADLINE_EPOCH','inf'))
+    supervisor=int(os.environ.get('PROPELLER_SUPERVISOR_PID','0'))
+    if time.time()>=absolute_deadline or (supervisor and not process_alive(supervisor)):
+        return {'command':args,'returncode':None,'status':'TIMEOUT','seconds':0,'log':str(logfile),'reason':'campaign deadline or supervisor absent'}
     with logfile.open("w") as log:
         process=subprocess.Popen(args,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+        atomic_json(Path(case)/'active-process.json',{'pid':process.pid,'owner_pid':os.getpid(),'command':args,'started':time.time(),'status':'RUNNING'})
         try:
             deadline=started+config["cfd"]["timeout_seconds"]
             startup=started+config["cfd"].get("startup_timeout_seconds",60)
             while process.poll() is None:
-                if time.monotonic()>=deadline or (time.monotonic()>=startup and logfile.stat().st_size==0):
+                if time.monotonic()>=deadline or time.time()>=absolute_deadline or (supervisor and not process_alive(supervisor)) or (time.monotonic()>=startup and logfile.stat().st_size==0):
                     raise subprocess.TimeoutExpired(args,config["cfd"]["timeout_seconds"])
                 time.sleep(.2)
             code=process.returncode
@@ -51,8 +65,12 @@ def run_command(config,case,command):
             try: process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid,signal.SIGKILL);process.wait()
-            if isinstance(exc,KeyboardInterrupt): raise
+            if isinstance(exc,KeyboardInterrupt):
+                atomic_json(Path(case)/'active-process.json',{'pid':process.pid,'status':'INTERRUPTED'})
+                raise
+            atomic_json(Path(case)/'active-process.json',{'pid':process.pid,'status':'TIMEOUT'})
             return {"command":args,"returncode":None,"status":"TIMEOUT","seconds":time.monotonic()-started,"log":str(logfile)}
+    atomic_json(Path(case)/'active-process.json',{'pid':process.pid,'status':'FINISHED','returncode':code})
     rss=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
     return {"command":args,"returncode":code,"status":"SUCCESS" if code==0 else "FAILED","seconds":time.monotonic()-started,"log":str(logfile),
             "cumulative_child_max_rss_bytes":int(rss if sys.platform=='darwin' else rss*1024)}

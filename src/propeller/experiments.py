@@ -67,6 +67,13 @@ class Store:
             try:os.kill(pid,0)
             except ProcessLookupError:
                 if not (Path(directory)/"result.json").exists():
+                    from .simulation.recovery import live_case_process, recover_completed
+                    if live_case_process(Path(directory)/'case'):continue
+                    try:
+                        recover_completed(directory)
+                        recovered.append(identity)
+                        continue
+                    except (ValueError,KeyError,FileNotFoundError):pass
                     self.finish(identity,Path(directory),{"status":"INTERRUPTED","reasons":["Evaluation owner process exited without publishing a result"]})
                     recovered.append(identity)
             except PermissionError:continue

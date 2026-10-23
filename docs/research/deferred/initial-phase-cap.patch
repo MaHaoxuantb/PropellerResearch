@@ -1,0 +1,15 @@
+--- a/src/propeller/optimization/campaign.py
++++ b/src/propeller/optimization/campaign.py
+@@ -213,7 +213,11 @@
+             if reason:
+                 state['status']='DRAINING';state['stop_reason']=reason;write_status(root,state);time.sleep(2);continue
+             state['worker_limit']=worker_limit(state)
+-            if len(running)>=state['worker_limit'] or state['evaluations']+len(running)>=s['max_evaluations']:
++            # Drain the initial sample before spending the reserved adaptive
++            # slots. Otherwise asynchronous workers can consume nearly the
++            # whole small pilot with initial points before a model is fitted.
++            phase_limit=s['initial_evaluations'] if state['evaluations']<s['initial_evaluations'] else s['max_evaluations']
++            if len(running)>=state['worker_limit'] or state['evaluations']+len(running)>=phase_limit:
+                 time.sleep(2);continue
+             remaining=state['deadline']-now
+             if remaining<s['candidate_hours']*3600:

@@ -8,9 +8,10 @@ from ..geometry.preview import write_preview
 from .case_builder import build_case
 from .runner import runtime_info,run_command
 from .parser import summarize,mesh_diagnostics
+from ..geometry.screening import section_screen
 
 
-def evaluate_cfd(config,root="runs/evaluations",use_cache=True,initialize_from=None):
+def evaluate_cfd(config,root="runs/evaluations",use_cache=True,initialize_from=None,radius_constraint=None):
     store=Store(root); key,manifest=evaluation_key(config)
     # Verify actual runtime before retrieving a stored calculation.
     runtime=runtime_info(config);manifest["runtime"]=runtime
@@ -18,6 +19,9 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True,initialize_from=N
         store.close()
         return {"status":"RUNTIME_UNAVAILABLE","reasons":[runtime],"qualified":False}
     key=hashlib.sha256((key+str(runtime)).encode()).hexdigest()
+    if radius_constraint is not None:
+        manifest['radius_constraint']=radius_constraint
+        key=hashlib.sha256((key+canonical(radius_constraint)).encode()).hexdigest()
     initialization=None
     if initialize_from:
         from .initialization import initialization_inputs
@@ -35,8 +39,15 @@ def evaluate_cfd(config,root="runs/evaluations",use_cache=True,initialize_from=N
         try: return store.finish(identity,directory,result)
         finally: store.close()
     try:
+        try:screening=section_screen(config)
+        except ValueError as exc:return finish({'status':'GEOMETRY_INVALID','reasons':[str(exc)]})
+        atomic_json(directory/'screening.json',screening)
+        if not screening['valid']:
+            return finish({'status':'GEOMETRY_INVALID','reasons':screening['codes']})
         try: geometry=generate_rotor(config)
         except Exception as exc: return finish({"status":"GEOMETRY_INVALID","reasons":[str(exc)]})
+        if radius_constraint is not None and abs(geometry.measurements['diameter']/2-radius_constraint['radius'])>radius_constraint['tolerance']:
+            return finish({'status':'GEOMETRY_INVALID','reasons':['Finished solid violates fixed radius']})
         if initialization:
             from .initialization import check_geometry
             initialization['geometry_equivalence']=check_geometry(geometry,initialization)

@@ -1,0 +1,21 @@
+{
+  "base_config": "config/flow-oriented-fine-4500.json",
+  "baseline": "runs/evaluations/6388c6b553280fec/ec0cf993e6f34d22b482e80e207476a5",
+  "radius": 0.11175999790430069,
+  "seed": 42,
+  "workers": 4,
+  "memory_budget_gb": 12,
+  "job_memory_gb": 3,
+  "max_hours": 12,
+  "candidate_hours": 3,
+  "max_evaluations": 12,
+  "max_attempts": 36,
+  "initial_evaluations": 6,
+  "candidate_pool": 128,
+  "max_consecutive_failures": 4,
+  "stagnation_patience": 4,
+  "min_accepted": 8,
+  "improvement_tolerance": 0.005,
+  "min_free_gb": 8,
+  "max_growth_gb": 8
+}
