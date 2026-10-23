@@ -1,0 +1,542 @@
+{
+  "campaign": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02",
+  "elapsed_hours": 5.74986904501915,
+  "stop_reason": "repeated numerical failures; inspect before spending more",
+  "geometry_pool_rejections": 436,
+  "bayesian_proposals": 0,
+  "records": [
+    {
+      "id": "design-001",
+      "status": "NOT_CONVERGED",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/5571c0e8c0e4a316/ac9f759d462a4fc4a8d5c7e4a0762b94",
+      "config_matches_job": true,
+      "baseline_distance": 0.49453350091027454,
+      "result_sha256": "916463c58e26f02eb855094dadbafc70a15c4fb4f817be32549de8eec81836b2",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": -0.14766396338214,
+          "shaft_power": 52.520076466136835,
+          "fluid_torque_z": -0.10030595737379999,
+          "CT": -0.0069540114565344235,
+          "CP": 0.1327856353844571,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": null
+        },
+        "reasons": [
+          "Thrust/power not stable"
+        ],
+        "diagnostics": {
+          "samples": 4500,
+          "last_time": 4500.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.022207225622026615,
+            "relative_drift": 0.0027181313937869626
+          },
+          "power_stability": {
+            "relative_std": 0.0010664704411957326,
+            "relative_drift": 0.001058459098340008
+          },
+          "residuals": {
+            "p": 5.272133325e-08,
+            "Ux": 6.611653978e-05,
+            "Uy": 6.652336437e-05,
+            "Uz": 9.347318868e-05,
+            "k": 2.10428117e-05,
+            "omega": 7.195979726e-06
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 8.72681975e-05,
+          "y_plus": {
+            "min": 0.9307255792,
+            "max": 171.051111,
+            "average": 18.08867068
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 306107.0,
+        "max_non_orthogonality": 66.7240285,
+        "max_skewness": 3.480120161,
+        "layer_extrusion_percent": 96.07576973,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-002",
+      "status": "NOT_CONVERGED",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/a95d4498d71fcdb1/83dde3b9c85e455a9498aa3bb713ae5f",
+      "config_matches_job": true,
+      "baseline_distance": 0.49903486440259703,
+      "result_sha256": "0c42a699b0d80b39bf4511ccce11b615525bf4ab325a30ba110492779e5c68e7",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": 0.45531401030199997,
+          "shaft_power": 27.617508365794706,
+          "fluid_torque_z": -0.052745555667576,
+          "CT": 0.021442326018073686,
+          "CP": 0.06982488684021816,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.03587877968440664
+        },
+        "reasons": [
+          "Residual threshold exceeded"
+        ],
+        "diagnostics": {
+          "samples": 4500,
+          "last_time": 4500.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.002602466483179883,
+            "relative_drift": 0.00036306142754166133
+          },
+          "power_stability": {
+            "relative_std": 0.00044229767073390415,
+            "relative_drift": 5.012903776494256e-05
+          },
+          "residuals": {
+            "p": 1.822160115e-07,
+            "Ux": 0.0001637023075,
+            "Uy": 0.0001646218071,
+            "Uz": 0.0001807030156,
+            "k": 3.884983766e-05,
+            "omega": 1.350771091e-05
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 1.3342718e-05,
+          "y_plus": {
+            "min": 1.189268549,
+            "max": 121.8927046,
+            "average": 16.26682665
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 335699.0,
+        "max_non_orthogonality": 61.50866264,
+        "max_skewness": 3.700927784,
+        "layer_extrusion_percent": 96.71895878,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-003",
+      "status": "SUCCESS",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/a4e1400d7f5c70e8/6a8f92839cf748709fed3a889b82f461",
+      "config_matches_job": true,
+      "baseline_distance": 0.4989273261631444,
+      "result_sha256": "7fbe331958e1bcb36e6fc05ca76d32a50b0f889d842dfd5ebdc63f6891b4a497",
+      "reparsed": {
+        "status": "SUCCESS",
+        "metrics": {
+          "thrust": 0.23267361868376,
+          "shaft_power": 26.708741615361525,
+          "fluid_torque_z": -0.05100993902218799,
+          "CT": 0.010957412850777433,
+          "CP": 0.06752726698716363,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.013552609543383
+        },
+        "reasons": [],
+        "diagnostics": {
+          "samples": 4500,
+          "last_time": 4500.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.002741235675863327,
+            "relative_drift": 0.002000459281602652
+          },
+          "power_stability": {
+            "relative_std": 0.00022755700462752563,
+            "relative_drift": 0.00012115762469980219
+          },
+          "residuals": {
+            "p": 7.512677713e-08,
+            "Ux": 1.372381756e-05,
+            "Uy": 1.803573454e-05,
+            "Uz": 1.855069405e-05,
+            "k": 5.556324654e-06,
+            "omega": 1.608138323e-06
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 8.959340064e-06,
+          "y_plus": {
+            "min": 1.378214383,
+            "max": 157.7572876,
+            "average": 16.85887174
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 291501.0,
+        "max_non_orthogonality": 66.37208822,
+        "max_skewness": 3.989235579,
+        "layer_extrusion_percent": 95.24622829,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-004",
+      "status": "NOT_CONVERGED",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/111c0e102d66ce92/d62068dc110644088186261f6e4c1daf",
+      "config_matches_job": true,
+      "baseline_distance": 0.49379531924230535,
+      "result_sha256": "34dc82b0ebfafb6f964ab9273db4bbef06537240e964d6126ce5a0fcb22c2cba",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": 0.007832598083954001,
+          "shaft_power": 21.53083699413334,
+          "fluid_torque_z": -0.041120869638266,
+          "CT": 0.0003688643834466766,
+          "CP": 0.05443605689471049,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.00010383732381425405
+        },
+        "reasons": [
+          "Thrust/power not stable"
+        ],
+        "diagnostics": {
+          "samples": 4500,
+          "last_time": 4500.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.08048983474736253,
+            "relative_drift": 0.1228523074553369
+          },
+          "power_stability": {
+            "relative_std": 0.00046535351802814274,
+            "relative_drift": 0.0007179004103680523
+          },
+          "residuals": {
+            "p": 3.932861779e-08,
+            "Ux": 1.760018596e-05,
+            "Uy": 1.965543217e-05,
+            "Uz": 2.300484301e-05,
+            "k": 1.283162959e-05,
+            "omega": 6.563813154e-07
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 2.518962713e-05,
+          "y_plus": {
+            "min": 1.021913814,
+            "max": 143.5652266,
+            "average": 17.22818111
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 337134.0,
+        "max_non_orthogonality": 62.89489111,
+        "max_skewness": 3.926803716,
+        "layer_extrusion_percent": 96.96939783,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-005",
+      "status": "TIMEOUT",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/6b8f06ed8ca0f4dc/660b616a76b44b178f9ce6c6270f6c24",
+      "config_matches_job": true,
+      "baseline_distance": 0.49944875143612716,
+      "result_sha256": "1d20fd9b8f5fa75727c16830cad569f68efda5db0921679de9cd7d558220df70",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": 0.17253311453696,
+          "shaft_power": 73.83554114877973,
+          "fluid_torque_z": -0.14101549619632,
+          "CT": 0.008125186590154206,
+          "CP": 0.18667717004786585,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.003130393027611074
+        },
+        "reasons": [
+          "Solver did not finish cleanly",
+          "Residual threshold exceeded",
+          "Thrust/power not stable"
+        ],
+        "diagnostics": {
+          "samples": 4253,
+          "last_time": 4253.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.04665101493853456,
+            "relative_drift": 0.022114592516572634
+          },
+          "power_stability": {
+            "relative_std": 0.0014585989423216922,
+            "relative_drift": 0.0010989741083794447
+          },
+          "residuals": {
+            "p": 1.200976562e-07,
+            "Ux": 0.000172372065,
+            "Uy": 0.000165398873,
+            "Uz": 0.0002721242572,
+            "k": 6.800458233e-05,
+            "omega": 1.781736085e-05
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 2.233748922e-05,
+          "y_plus": {
+            "min": 0.7558186741,
+            "max": 162.3954352,
+            "average": 19.79088358
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 358098.0,
+        "max_non_orthogonality": 66.14674896,
+        "max_skewness": 3.94966517,
+        "layer_extrusion_percent": 96.35210839,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-006",
+      "status": "NOT_CONVERGED",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/64d0ac2fe9c00c22/b93451904315444996825557b4296a88",
+      "config_matches_job": true,
+      "baseline_distance": 0.4963544705925387,
+      "result_sha256": "54e5406aafa2c826bdfa3ea4e5de466decf9dcfb456cbeacd4d41ddac70bd0ea",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": 0.23455033212418003,
+          "shaft_power": 6.207480036844106,
+          "fluid_torque_z": -0.011855413584096001,
+          "CT": 0.0110457938373526,
+          "CP": 0.015694268483408158,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.05901934472369464
+        },
+        "reasons": [
+          "Residual threshold exceeded",
+          "Thrust/power not stable"
+        ],
+        "diagnostics": {
+          "samples": 4500,
+          "last_time": 4500.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.016912337283235254,
+            "relative_drift": 0.029130236064567272
+          },
+          "power_stability": {
+            "relative_std": 0.003585293597350752,
+            "relative_drift": 0.006125008217462232
+          },
+          "residuals": {
+            "p": 3.91754143e-06,
+            "Ux": 0.0002371154575,
+            "Uy": 0.0002390524677,
+            "Uz": 0.0003409275187,
+            "k": 0.0001034408637,
+            "omega": 3.852668636e-06
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 7.005620932e-06,
+          "y_plus": {
+            "min": 0.8385546945,
+            "max": 157.7758892,
+            "average": 15.15651181
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 324673.0,
+        "max_non_orthogonality": 61.4592861,
+        "max_skewness": 3.902029627,
+        "layer_extrusion_percent": 96.5246282,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-007",
+      "status": "GEOMETRY_INVALID",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/2fb7013a8c876c28/9ecdeff7e9324e04b4297fcd20c52e9d",
+      "config_matches_job": true,
+      "baseline_distance": 0.49981117195307895,
+      "result_sha256": "7cb81da61db93840e0dae11650aafb9ad4732780b330419663b406fc413c5d29"
+    },
+    {
+      "id": "design-008",
+      "status": "TIMEOUT",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/bb91da0c6d82341e/ee7aca4059404bf28bddae988782233f",
+      "config_matches_job": true,
+      "baseline_distance": 0.49005599533536304,
+      "result_sha256": "33ab7e84d0092c13d520bb4a87e9a86755b609f1835525e81057b9afc07b85ec",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": 0.2866191669896,
+          "shaft_power": 42.688271892401396,
+          "fluid_torque_z": -0.081528593804718,
+          "CT": 0.013497897017364658,
+          "CP": 0.10792804748393246,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.011593242137288618
+        },
+        "reasons": [
+          "Solver did not finish cleanly",
+          "Residual threshold exceeded",
+          "Thrust/power not stable"
+        ],
+        "diagnostics": {
+          "samples": 4283,
+          "last_time": 4283.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.10274434058005362,
+            "relative_drift": 0.03604293170210376
+          },
+          "power_stability": {
+            "relative_std": 0.004602641799779876,
+            "relative_drift": 0.007816047011853858
+          },
+          "residuals": {
+            "p": 4.187375737e-07,
+            "Ux": 0.0003128143652,
+            "Uy": 0.0002900298521,
+            "Uz": 0.0003157154168,
+            "k": 0.0001179941614,
+            "omega": 1.534849421e-05
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 3.16410936e-05,
+          "y_plus": {
+            "min": 0.9743953026,
+            "max": 156.5776789,
+            "average": 18.85383005
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 355631.0,
+        "max_non_orthogonality": 65.67701785,
+        "max_skewness": 3.800343855,
+        "layer_extrusion_percent": 96.38656211,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    },
+    {
+      "id": "design-009",
+      "status": "NOT_CONVERGED",
+      "method": "space-filling-local",
+      "path": "/Users/thomasb/Documents/PropellerResearch/runs/mobo-pilot-02/evaluations/e3d25ba795b3cdf5/b7c2cbf9312f4e3f945672f1bf627ebd",
+      "config_matches_job": true,
+      "baseline_distance": 0.4948546956362512,
+      "result_sha256": "7d2fd651388cdb40216929eeb771ca2c656dcd72dafba9cbe58890166dcee939",
+      "reparsed": {
+        "status": "NOT_CONVERGED",
+        "metrics": {
+          "thrust": 0.49356758199898004,
+          "shaft_power": 95.14452543086684,
+          "fluid_torque_z": -0.18171265836546002,
+          "CT": 0.023243820233326037,
+          "CP": 0.2405523204223846,
+          "J": 0.0,
+          "efficiency": null,
+          "figure_of_merit": 0.011754164729552851
+        },
+        "reasons": [
+          "Residual threshold exceeded"
+        ],
+        "diagnostics": {
+          "samples": 4500,
+          "last_time": 4500.0,
+          "window": 500,
+          "thrust_stability": {
+            "relative_std": 0.0034064546115010036,
+            "relative_drift": 0.00017619385391516807
+          },
+          "power_stability": {
+            "relative_std": 0.00028450968544419355,
+            "relative_drift": 4.282038945370486e-06
+          },
+          "residuals": {
+            "p": 4.137679529e-07,
+            "Ux": 0.0004213928818,
+            "Uy": 0.0004181327578,
+            "Uz": 0.0007648610655,
+            "k": 0.0001250934766,
+            "omega": 5.6323884e-05
+          },
+          "residual_window_samples": 500,
+          "local_continuity": 6.832376093e-05,
+          "y_plus": {
+            "min": 1.29112516,
+            "max": 158.2149211,
+            "average": 18.20248678
+          }
+        },
+        "qualified": false,
+        "provenance": "native-openfoam-v2512"
+      },
+      "mesh": {
+        "valid": true,
+        "errors": [],
+        "cells": 302822.0,
+        "max_non_orthogonality": 67.22967592,
+        "max_skewness": 3.480471204,
+        "layer_extrusion_percent": 95.64680658,
+        "wall_treatment": "SST with Spalding nut wall function; actual y+ must be inspected"
+      },
+      "solver_timeout_seconds": 5400
+    }
+  ],
+  "note": "Read-only reparse. Diagnostic metrics for failed or timed-out jobs are NOT accepted optimizer observations. No archived status changed."
+}

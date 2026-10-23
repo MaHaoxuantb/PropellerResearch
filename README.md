@@ -4,6 +4,8 @@ A nine-parameter loop-rotor generator, offline 3D inspector, native Homebrew Ope
 
 The current system is a research implementation. Geometry and optimizer tests are separate from CFD qualification; it does not claim to have found a validated optimal propeller.
 
+The maintained [current technical pathways](docs/TECHNICAL_PATHWAYS.md) map the geometry, CFD, restart, qualification, optimization and evidence workflows, including known pilot limitations.
+
 ## Run from this checkout
 
 The existing `.venv` has the dependencies installed. Commands run from the repository root:
